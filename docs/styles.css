@@ -171,6 +171,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: hidden;
+  width: 100%;
 }
 
 .card-header {
@@ -257,6 +258,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
 .stat-value { font-weight: 600; }
 
 /* ========== ANNOUNCEMENTS ========== */
+#announcements-area { width: 100%; }
 .announcements-list { padding: 0; }
 
 .announcement-item {

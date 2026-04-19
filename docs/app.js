@@ -29,20 +29,26 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Find or create member
-  let { data: existing } = await sb.from('members').select('*').eq('name', name).limit(1).single();
-  if (existing) {
-    currentUser = { id: existing.id, name: existing.name, is_host: existing.is_host || isHost };
-    if (isHost && !existing.is_host) {
-      await sb.from('members').update({ is_host: true }).eq('id', existing.id);
+  try {
+    // Find or create member
+    let { data: existing } = await sb.from('members').select('*').eq('name', name).limit(1).single();
+    if (existing) {
+      currentUser = { id: existing.id, name: existing.name, is_host: existing.is_host || isHost };
+      if (isHost && !existing.is_host) {
+        await sb.from('members').update({ is_host: true }).eq('id', existing.id);
+      }
+    } else {
+      const { data: newMember } = await sb.from('members').insert({ name, is_host: isHost }).select().single();
+      currentUser = { id: newMember.id, name: newMember.name, is_host: isHost };
     }
-  } else {
-    const { data: newMember } = await sb.from('members').insert({ name, is_host: isHost }).select().single();
-    currentUser = { id: newMember.id, name: newMember.name, is_host: isHost };
-  }
 
-  localStorage.setItem('brunner_user', JSON.stringify(currentUser));
-  showApp();
+    localStorage.setItem('brunner_user', JSON.stringify(currentUser));
+    showApp();
+  } catch (err) {
+    const el = document.getElementById('login-error');
+    el.textContent = 'Connection error — please try again';
+    el.classList.remove('hidden');
+  }
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => {

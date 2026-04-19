@@ -217,23 +217,33 @@ async function loadSuggestions() {
     return;
   }
 
-  // Sort by vote count descending
-  const sorted = suggestions.slice().sort((a, b) => (b.votes?.length || 0) - (a.votes?.length || 0));
-  const maxVotes = Math.max(...sorted.map(s => s.votes?.length || 0), 1);
+  // Aggregate votes by destination + time combo
+  const comboMap = {};
+  suggestions.forEach(s => {
+    const key = s.destination + ' — ' + s.time_of_year;
+    if (!comboMap[key]) comboMap[key] = { destination: s.destination, time: s.time_of_year, votes: 0, voters: [] };
+    const count = s.votes?.length || 0;
+    comboMap[key].votes += count;
+    (s.votes || []).forEach(v => {
+      const vn = v.members?.name || 'Unknown';
+      if (!comboMap[key].voters.includes(vn)) comboMap[key].voters.push(vn);
+    });
+  });
+
+  const sorted = Object.values(comboMap).sort((a, b) => b.votes - a.votes);
+  const maxVotes = Math.max(...sorted.map(s => s.votes), 1);
 
   el.innerHTML = sorted.map((s, idx) => {
-    const count = s.votes?.length || 0;
-    const pct = Math.round((count / maxVotes) * 100);
-    const medal = idx === 0 && count > 0 ? '🥇 ' : idx === 1 && count > 0 ? '🥈 ' : idx === 2 && count > 0 ? '🥉 ' : '';
-    const voters = (s.votes || []).map(v => v.members?.name || 'Unknown');
+    const pct = Math.round((s.votes / maxVotes) * 100);
+    const medal = idx === 0 && s.votes > 0 ? '🥇 ' : idx === 1 && s.votes > 0 ? '🥈 ' : idx === 2 && s.votes > 0 ? '🥉 ' : '';
     return `
       <div class="poll-result-item">
         <div class="poll-result-header">
-          <span class="poll-result-name">${medal}${esc(s.destination)} — ${esc(s.time_of_year)}</span>
-          <span class="poll-result-count">${count} vote${count !== 1 ? 's' : ''}</span>
+          <span class="poll-result-name">${medal}${esc(s.destination)} — ${esc(s.time)}</span>
+          <span class="poll-result-count">${s.votes} vote${s.votes !== 1 ? 's' : ''}</span>
         </div>
         <div class="poll-bar-bg"><div class="poll-bar" style="width:${pct}%"></div></div>
-        ${voters.length ? `<div class="poll-voters">${voters.map(v => esc(v)).join(', ')}</div>` : ''}
+        ${s.voters.length ? `<div class="poll-voters">${s.voters.map(v => esc(v)).join(', ')}</div>` : ''}
       </div>`;
   }).join('');
 }

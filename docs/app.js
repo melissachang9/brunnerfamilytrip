@@ -102,7 +102,6 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal
 async function loadAll() {
   await Promise.all([
     loadConfig(),
-    loadSuggestions(),
     loadAnnouncements(),
     loadAccommodation(),
     loadFlights(),
@@ -148,10 +147,8 @@ function loadDashboardStats() {
 
   const statsEl = document.getElementById('quick-stats');
   const memberCount = document.querySelectorAll('.member-card').length;
-  const sugCount = document.querySelectorAll('.proposal-item').length;
   statsEl.innerHTML = `
     <div class="stat-item"><span>Family Members</span><span class="stat-value">${memberCount}</span></div>
-    <div class="stat-item"><span>Suggestions</span><span class="stat-value">${sugCount}</span></div>
   `;
 }
 
@@ -190,79 +187,6 @@ async function deleteAnnouncement(id) {
   if (!confirm('Delete this announcement?')) return;
   await sb.from('announcements').delete().eq('id', id);
   await loadAnnouncements();
-}
-
-// ========== SUGGESTIONS & VOTING ==========
-async function loadSuggestions() {
-  const { data: suggestions } = await sb
-    .from('suggestions')
-    .select('*, votes(id, member_id, members(name))')
-    .order('created_at', { ascending: false });
-
-  const destEl = document.getElementById('dest-summary');
-  const monthEl = document.getElementById('month-summary');
-
-  if (!suggestions || suggestions.length === 0) {
-    destEl.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
-    monthEl.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
-    return;
-  }
-
-  // Aggregate votes by destination
-  const destMap = {};
-  suggestions.forEach(s => {
-    const name = s.destination;
-    if (!destMap[name]) destMap[name] = { votes: 0, voters: [] };
-    const count = s.votes?.length || 0;
-    destMap[name].votes += count;
-    (s.votes || []).forEach(v => {
-      const vn = v.members?.name || 'Unknown';
-      if (!destMap[name].voters.includes(vn)) destMap[name].voters.push(vn);
-    });
-  });
-  const destSorted = Object.entries(destMap).sort((a, b) => b[1].votes - a[1].votes);
-  const destMax = Math.max(...destSorted.map(d => d[1].votes), 1);
-  destEl.innerHTML = destSorted.map(([name, d], idx) => {
-    const pct = Math.round((d.votes / destMax) * 100);
-    const medal = idx === 0 && d.votes > 0 ? '🥇 ' : idx === 1 && d.votes > 0 ? '🥈 ' : idx === 2 && d.votes > 0 ? '🥉 ' : '';
-    return `
-      <div class="poll-result-item">
-        <div class="poll-result-header">
-          <span class="poll-result-name">${medal}${esc(name)}</span>
-          <span class="poll-result-count">${d.votes} vote${d.votes !== 1 ? 's' : ''}</span>
-        </div>
-        <div class="poll-bar-bg"><div class="poll-bar" style="width:${pct}%"></div></div>
-        ${d.voters.length ? `<div class="poll-voters">${d.voters.map(v => esc(v)).join(', ')}</div>` : ''}
-      </div>`;
-  }).join('');
-
-  // Aggregate votes by month/time
-  const monthMap = {};
-  suggestions.forEach(s => {
-    const time = s.time_of_year;
-    if (!monthMap[time]) monthMap[time] = { votes: 0, voters: [] };
-    const count = s.votes?.length || 0;
-    monthMap[time].votes += count;
-    (s.votes || []).forEach(v => {
-      const vn = v.members?.name || 'Unknown';
-      if (!monthMap[time].voters.includes(vn)) monthMap[time].voters.push(vn);
-    });
-  });
-  const monthSorted = Object.entries(monthMap).sort((a, b) => b[1].votes - a[1].votes);
-  const monthMax = Math.max(...monthSorted.map(m => m[1].votes), 1);
-  monthEl.innerHTML = monthSorted.map(([name, m], idx) => {
-    const pct = Math.round((m.votes / monthMax) * 100);
-    const medal = idx === 0 && m.votes > 0 ? '🥇 ' : idx === 1 && m.votes > 0 ? '🥈 ' : idx === 2 && m.votes > 0 ? '🥉 ' : '';
-    return `
-      <div class="poll-result-item">
-        <div class="poll-result-header">
-          <span class="poll-result-name">${medal}${esc(name)}</span>
-          <span class="poll-result-count">${m.votes} vote${m.votes !== 1 ? 's' : ''}</span>
-        </div>
-        <div class="poll-bar-bg"><div class="poll-bar" style="width:${pct}%"></div></div>
-        ${m.voters.length ? `<div class="poll-voters">${m.voters.map(v => esc(v)).join(', ')}</div>` : ''}
-      </div>`;
-  }).join('');
 }
 
 // ========== ACCOMMODATION ==========

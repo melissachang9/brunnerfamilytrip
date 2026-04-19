@@ -222,7 +222,8 @@ async function loadSuggestions() {
   suggestions.forEach(s => {
     const key = s.destination + ' — ' + s.time_of_year;
     if (!comboMap[key]) comboMap[key] = { destination: s.destination, time: s.time_of_year, votes: 0, voters: [] };
-    const count = s.votes?.length || 0;
+    // Sum count for each vote (default 1)
+    const count = (s.votes || []).reduce((sum, v) => sum + (v.count || 1), 0);
     comboMap[key].votes += count;
     (s.votes || []).forEach(v => {
       const vn = v.members?.name || 'Unknown';

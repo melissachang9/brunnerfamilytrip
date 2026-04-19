@@ -172,9 +172,12 @@ async function submitVotes() {
     if (newSug) checked.push(newSug.id);
   }
 
-  // Submit votes
+  // Get party size
+  const partySize = parseInt(document.getElementById('voter-party-size').value) || 1;
+  // Submit votes (delete old, insert new to ensure count is updated)
   for (const sugId of checked) {
-    await sb.from('votes').upsert({ suggestion_id: sugId, member_id: memberId }, { onConflict: 'suggestion_id,member_id' });
+    await sb.from('votes').delete().eq('suggestion_id', sugId).eq('member_id', memberId);
+    await sb.from('votes').insert({ suggestion_id: sugId, member_id: memberId, count: partySize });
   }
 
   showStep(2);

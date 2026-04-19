@@ -60,7 +60,7 @@
     <h2>First, who are you?</h2>
     <p class="subtitle">Enter your name and how many people are in your travel group.</p>
     <input type="text" id="voter-name" placeholder="Your name (e.g. Melissa)" autocomplete="off">
-    <input type="number" id="voter-party-size" placeholder="Number of people traveling (e.g. 4)" min="1" max="50" autocomplete="off">
+    <input type="text" id="voter-party-size" inputmode="numeric" pattern="[0-9]*" placeholder="Number of people traveling (e.g. 4)" autocomplete="off">
     <p class="error" id="name-error">Please enter your name and number of travelers</p>
     <button class="btn" onclick="goToVote()">Next &rarr;</button>
   </div>

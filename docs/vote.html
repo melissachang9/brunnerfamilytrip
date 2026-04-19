@@ -73,6 +73,7 @@
     <input type="text" id="new-destination" placeholder="Destination (e.g. Bali)">
     <input type="text" id="new-time" placeholder="Best time (e.g. March 2028)">
     <textarea id="new-notes" placeholder="Why? (optional)" rows="2"></textarea>
+    <p class="error" id="vote-error">Please select at least one destination, or suggest a new one with both destination and date filled in.</p>
     <button class="btn" onclick="submitVotes()">Submit My Votes!</button>
   </div>
 
@@ -133,11 +134,28 @@ async function goToVote() {
 async function submitVotes() {
   const name = document.getElementById('voter-name').value.trim();
   const checked = [...document.querySelectorAll('#vote-options input:checked')].map(c => c.value);
-
-  // Submit new suggestion if provided
   const newDest = document.getElementById('new-destination').value.trim();
   const newTime = document.getElementById('new-time').value.trim();
-  if (newDest && newTime) {
+  const errEl = document.getElementById('vote-error');
+
+  // Must select at least one existing, or fill in both new destination + time
+  const hasExisting = checked.length > 0;
+  const hasNewComplete = newDest && newTime;
+  const hasNewPartial = (newDest && !newTime) || (!newDest && newTime);
+
+  if (!hasExisting && !hasNewComplete) {
+    errEl.style.display = 'block';
+    return;
+  }
+  if (hasNewPartial) {
+    errEl.textContent = 'Please fill in both destination and date for your new suggestion.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  // Submit new suggestion if provided
+  if (hasNewComplete) {
     const { data: newSug } = await sb.from('suggestions').insert({
       destination: newDest,
       time_of_year: newTime,

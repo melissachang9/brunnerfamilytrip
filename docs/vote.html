@@ -73,7 +73,7 @@
     <input type="text" id="new-destination" placeholder="Destination (e.g. Bali)">
     <input type="text" id="new-time" placeholder="Best time (e.g. March 2028)">
     <textarea id="new-notes" placeholder="Why? (optional)" rows="2"></textarea>
-    <p class="error" id="vote-error">Please select at least one destination, or suggest a new one with both destination and date filled in.</p>
+    <p class="error" id="vote-error"></p>
     <button class="btn" onclick="submitVotes()">Submit My Votes!</button>
   </div>
 
@@ -151,7 +151,7 @@ async function submitVotes() {
     return;
   }
   if (!hasExisting && !hasNewComplete) {
-    errEl.textContent = 'Please select at least one destination, or suggest a new one with both destination and date filled in.';
+    errEl.textContent = 'Please select at least one destination, or suggest a new one below.';
     errEl.style.display = 'block';
     return;
   }

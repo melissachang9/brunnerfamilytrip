@@ -37,7 +37,6 @@
     </div>
     <div class="nav-links">
       <a href="#" data-section="dashboard" class="nav-link active">Dashboard</a>
-      <a href="#" data-section="voting" class="nav-link">Vote</a>
       <a href="#" data-section="accommodation" class="nav-link">Stay</a>
       <a href="#" data-section="flights" class="nav-link">Flights</a>
       <a href="#" data-section="itinerary" class="nav-link">Itinerary</a>
@@ -77,9 +76,15 @@
         </div>
       </div>
 
-      <div class="card" style="margin-top:1.5rem">
-        <div class="card-header"><h3>&#127758; Top Suggestions</h3></div>
-        <div id="vote-summary" style="padding:1rem 1.5rem"></div>
+      <div class="dashboard-grid" style="margin-top:1.5rem">
+        <div class="card">
+          <div class="card-header"><h3>&#127758; Top Destinations</h3></div>
+          <div id="dest-summary" style="padding:1rem 1.5rem"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>&#128197; Top Months</h3></div>
+          <div id="month-summary" style="padding:1rem 1.5rem"></div>
+        </div>
       </div>
 
       <!-- Admin Settings -->
@@ -104,16 +109,6 @@
           <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
         </div>
       </div>
-    </section>
-
-    <!-- VOTING -->
-    <section id="section-voting" class="section">
-      <div class="section-header">
-        <h2>Vote on Destinations</h2>
-        <button class="btn-primary" onclick="showModal('suggestion-modal')">+ Suggest</button>
-      </div>
-      <p class="subtitle" style="margin-top:-1rem;margin-bottom:1rem">Suggest a destination &amp; time, then vote on your favorites!</p>
-      <div id="suggestions-list" class="voting-grid"></div>
     </section>
 
     <!-- ACCOMMODATION -->
@@ -182,19 +177,6 @@
 <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModals()">
 
   <!-- Suggestion Modal -->
-  <div id="suggestion-modal" class="modal hidden" onclick="event.stopPropagation()">
-    <h3>Suggest a Destination</h3>
-    <form onsubmit="submitSuggestion(event)">
-      <input type="text" id="sug-destination" placeholder="Destination (e.g. Bali, Costa Rica)" required>
-      <input type="text" id="sug-time" placeholder="Best time to go (e.g. March 2028)" required>
-      <textarea id="sug-notes" placeholder="Why this place? (optional)" rows="3"></textarea>
-      <div class="modal-actions">
-        <button type="button" class="btn-secondary" onclick="closeModals()">Cancel</button>
-        <button type="submit" class="btn-primary">Suggest</button>
-      </div>
-    </form>
-  </div>
-
   <!-- Announcement Modal -->
   <div id="announcement-modal" class="modal hidden" onclick="event.stopPropagation()">
     <h3>Post Announcement</h3>

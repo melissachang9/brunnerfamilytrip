@@ -199,86 +199,70 @@ async function loadSuggestions() {
     .select('*, votes(id, member_id, members(name))')
     .order('created_at', { ascending: false });
 
-  const el = document.getElementById('suggestions-list');
-  const summaryEl = document.getElementById('vote-summary');
+  const destEl = document.getElementById('dest-summary');
+  const monthEl = document.getElementById('month-summary');
 
   if (!suggestions || suggestions.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🌍</div><p>No suggestions yet. Be the first to suggest a destination!</p></div>';
-    summaryEl.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
+    destEl.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
+    monthEl.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
     return;
   }
 
-  el.innerHTML = suggestions.map(s => {
-    const voteCount = s.votes ? s.votes.length : 0;
-    const voters = s.votes ? s.votes.map(v => v.members?.name || 'Unknown') : [];
-    const userVoted = s.votes ? s.votes.some(v => v.member_id === currentUser.id) : false;
-    return `
-      <div class="proposal-item">
-        <div class="proposal-top">
-          <div>
-            <div class="proposal-name">${esc(s.destination)}</div>
-            <div class="proposal-by">${esc(s.time_of_year)} · suggested by ${esc(s.suggested_by_name)}</div>
-          </div>
-          ${currentUser.is_host ? `<button class="btn-danger" onclick="deleteSuggestion('${s.id}')">×</button>` : ''}
-        </div>
-        ${s.notes ? `<div class="proposal-desc">${esc(s.notes)}</div>` : ''}
-        <div class="proposal-bottom">
-          <button class="btn-vote ${userVoted ? 'voted' : ''}" onclick="toggleVote('${s.id}', ${userVoted})">
-            ${userVoted ? '✓' : '♡'} ${voteCount} vote${voteCount !== 1 ? 's' : ''}
-          </button>
-        </div>
-        ${voters.length ? `<div class="voters-list">${voters.map(v => esc(v)).join(', ')}</div>` : ''}
-      </div>
-    `;
-  }).join('');
-
-  // Vote summary for dashboard
-  const sorted = [...suggestions].sort((a, b) => (b.votes?.length || 0) - (a.votes?.length || 0));
-  const maxVotes = Math.max(...sorted.map(s => s.votes?.length || 0), 1);
-  summaryEl.innerHTML = sorted.slice(0, 5).map((s, idx) => {
+  // Aggregate votes by destination
+  const destMap = {};
+  suggestions.forEach(s => {
+    const name = s.destination;
+    if (!destMap[name]) destMap[name] = { votes: 0, voters: [] };
     const count = s.votes?.length || 0;
-    const pct = Math.round((count / maxVotes) * 100);
-    const medal = idx === 0 && count > 0 ? '🥇 ' : idx === 1 && count > 0 ? '🥈 ' : idx === 2 && count > 0 ? '🥉 ' : '';
+    destMap[name].votes += count;
+    (s.votes || []).forEach(v => {
+      const vn = v.members?.name || 'Unknown';
+      if (!destMap[name].voters.includes(vn)) destMap[name].voters.push(vn);
+    });
+  });
+  const destSorted = Object.entries(destMap).sort((a, b) => b[1].votes - a[1].votes);
+  const destMax = Math.max(...destSorted.map(d => d[1].votes), 1);
+  destEl.innerHTML = destSorted.map(([name, d], idx) => {
+    const pct = Math.round((d.votes / destMax) * 100);
+    const medal = idx === 0 && d.votes > 0 ? '🥇 ' : idx === 1 && d.votes > 0 ? '🥈 ' : idx === 2 && d.votes > 0 ? '🥉 ' : '';
     return `
       <div class="poll-result-item">
         <div class="poll-result-header">
-          <span class="poll-result-name">${medal}${esc(s.destination)} (${esc(s.time_of_year)})</span>
-          <span class="poll-result-count">${count} vote${count !== 1 ? 's' : ''}</span>
+          <span class="poll-result-name">${medal}${esc(name)}</span>
+          <span class="poll-result-count">${d.votes} vote${d.votes !== 1 ? 's' : ''}</span>
         </div>
         <div class="poll-bar-bg"><div class="poll-bar" style="width:${pct}%"></div></div>
+        ${d.voters.length ? `<div class="poll-voters">${d.voters.map(v => esc(v)).join(', ')}</div>` : ''}
       </div>`;
   }).join('');
-}
 
-async function submitSuggestion(e) {
-  e.preventDefault();
-  await sb.from('suggestions').insert({
-    destination: document.getElementById('sug-destination').value,
-    time_of_year: document.getElementById('sug-time').value,
-    notes: document.getElementById('sug-notes').value,
-    suggested_by: currentUser.id,
-    suggested_by_name: currentUser.name,
+  // Aggregate votes by month/time
+  const monthMap = {};
+  suggestions.forEach(s => {
+    const time = s.time_of_year;
+    if (!monthMap[time]) monthMap[time] = { votes: 0, voters: [] };
+    const count = s.votes?.length || 0;
+    monthMap[time].votes += count;
+    (s.votes || []).forEach(v => {
+      const vn = v.members?.name || 'Unknown';
+      if (!monthMap[time].voters.includes(vn)) monthMap[time].voters.push(vn);
+    });
   });
-  closeModals();
-  e.target.reset();
-  await loadSuggestions();
-  loadDashboardStats();
-}
-
-async function toggleVote(suggestionId, alreadyVoted) {
-  if (alreadyVoted) {
-    await sb.from('votes').delete().eq('suggestion_id', suggestionId).eq('member_id', currentUser.id);
-  } else {
-    await sb.from('votes').insert({ suggestion_id: suggestionId, member_id: currentUser.id });
-  }
-  await loadSuggestions();
-}
-
-async function deleteSuggestion(id) {
-  if (!confirm('Delete this suggestion?')) return;
-  await sb.from('suggestions').delete().eq('id', id);
-  await loadSuggestions();
-  loadDashboardStats();
+  const monthSorted = Object.entries(monthMap).sort((a, b) => b[1].votes - a[1].votes);
+  const monthMax = Math.max(...monthSorted.map(m => m[1].votes), 1);
+  monthEl.innerHTML = monthSorted.map(([name, m], idx) => {
+    const pct = Math.round((m.votes / monthMax) * 100);
+    const medal = idx === 0 && m.votes > 0 ? '🥇 ' : idx === 1 && m.votes > 0 ? '🥈 ' : idx === 2 && m.votes > 0 ? '🥉 ' : '';
+    return `
+      <div class="poll-result-item">
+        <div class="poll-result-header">
+          <span class="poll-result-name">${medal}${esc(name)}</span>
+          <span class="poll-result-count">${m.votes} vote${m.votes !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="poll-bar-bg"><div class="poll-bar" style="width:${pct}%"></div></div>
+        ${m.voters.length ? `<div class="poll-voters">${m.voters.map(v => esc(v)).join(', ')}</div>` : ''}
+      </div>`;
+  }).join('');
 }
 
 // ========== ACCOMMODATION ==========

@@ -135,7 +135,7 @@ async function saveSettings() {
 }
 
 // ========== DASHBOARD ==========
-function loadDashboardStats() {
+async function loadDashboardStats() {
   const statusEl = document.getElementById('trip-status-info');
   const phase = tripConfig.phase || 'voting';
   const phaseLabels = { voting: 'Voting', planning: 'Planning' };

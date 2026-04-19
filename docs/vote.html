@@ -143,12 +143,15 @@ async function submitVotes() {
   const hasNewComplete = newDest && newTime;
   const hasNewPartial = (newDest && !newTime) || (!newDest && newTime);
 
-  if (!hasExisting && !hasNewComplete) {
+  if (hasNewPartial) {
+    errEl.textContent = newDest
+      ? 'Please also fill in the best time/date for your suggestion.'
+      : 'Please also fill in the destination for your suggestion.';
     errEl.style.display = 'block';
     return;
   }
-  if (hasNewPartial) {
-    errEl.textContent = 'Please fill in both destination and date for your new suggestion.';
+  if (!hasExisting && !hasNewComplete) {
+    errEl.textContent = 'Please select at least one destination, or suggest a new one with both destination and date filled in.';
     errEl.style.display = 'block';
     return;
   }

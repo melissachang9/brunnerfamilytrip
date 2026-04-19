@@ -5,8 +5,12 @@ let currentUser = null; // { id, name, is_host }
 (function init() {
   const saved = localStorage.getItem('brunner_user');
   if (saved) {
-    currentUser = JSON.parse(saved);
-    showApp();
+    try {
+      currentUser = JSON.parse(saved);
+      showApp();
+    } catch (e) {
+      localStorage.removeItem('brunner_user');
+    }
   }
 })();
 

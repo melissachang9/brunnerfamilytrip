@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brunner Family Trip</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="screen active">
+  <div class="login-container">
+    <div class="login-hero">
+      <h1>&#9992; Brunner Family Trip</h1>
+      <p>Family Trip Planner</p>
+    </div>
+    <form id="login-form" class="login-form">
+      <input type="text" id="login-name" placeholder="Your Name" required autocomplete="off">
+      <input type="password" id="login-password" placeholder="Host Password (optional)">
+      <button type="submit">Enter</button>
+      <p class="login-hint">Leave password blank if you're not the host</p>
+      <p id="login-error" class="error hidden"></p>
+    </form>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app-screen" class="screen">
+
+  <nav>
+    <div class="nav-brand">
+      <span class="nav-logo">&#9992;</span>
+      <span class="nav-title">Brunner Family Trip</span>
+    </div>
+    <div class="nav-links">
+      <a href="#" data-section="dashboard" class="nav-link active">Dashboard</a>
+      <a href="#" data-section="voting" class="nav-link">Vote</a>
+      <a href="#" data-section="accommodation" class="nav-link">Stay</a>
+      <a href="#" data-section="flights" class="nav-link">Flights</a>
+      <a href="#" data-section="itinerary" class="nav-link">Itinerary</a>
+      <a href="#" data-section="members" class="nav-link">People</a>
+      <a href="#" data-section="polls" class="nav-link">Polls</a>
+    </div>
+    <div class="nav-user">
+      <span id="user-display"></span>
+      <button id="logout-btn" class="btn-sm btn-secondary" style="color:#fff;border-color:rgba(255,255,255,0.3)">Logout</button>
+    </div>
+    <button id="mobile-menu-btn" class="mobile-menu-btn">&#9776;</button>
+  </nav>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section id="section-dashboard" class="section active">
+      <div class="section-header"><h2>Dashboard</h2></div>
+
+      <div id="announcements-area">
+        <div class="card">
+          <div class="card-header">
+            <h3>Announcements</h3>
+            <button class="btn-primary btn-sm host-only hidden" onclick="showModal('announcement-modal')">+ Post</button>
+          </div>
+          <div id="announcements-list" class="announcements-list"></div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid" style="margin-top:1.5rem">
+        <div class="card stats-card">
+          <h3>Trip Status</h3>
+          <div id="trip-status-info"></div>
+        </div>
+        <div class="card stats-card">
+          <h3>Quick Stats</h3>
+          <div id="quick-stats"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1.5rem">
+        <div class="card-header"><h3>&#127758; Top Suggestions</h3></div>
+        <div id="vote-summary" style="padding:1rem 1.5rem"></div>
+      </div>
+
+      <!-- Admin Settings -->
+      <div class="card host-only hidden" style="margin-top:1.5rem">
+        <div class="card-header"><h3>Trip Settings</h3></div>
+        <div class="settings-form">
+          <div class="form-row">
+            <label>Phase</label>
+            <select id="setting-phase">
+              <option value="voting">Voting (choosing destination & dates)</option>
+              <option value="planning">Planning (destination decided)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Selected Destination</label>
+            <input type="text" id="setting-destination" placeholder="e.g. Costa Rica">
+          </div>
+          <div class="form-row">
+            <label>Selected Time</label>
+            <input type="text" id="setting-time" placeholder="e.g. March 2028">
+          </div>
+          <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VOTING -->
+    <section id="section-voting" class="section">
+      <div class="section-header">
+        <h2>Vote on Destinations</h2>
+        <button class="btn-primary" onclick="showModal('suggestion-modal')">+ Suggest</button>
+      </div>
+      <p class="subtitle" style="margin-top:-1rem;margin-bottom:1rem">Suggest a destination &amp; time, then vote on your favorites!</p>
+      <div id="suggestions-list" class="voting-grid"></div>
+    </section>
+
+    <!-- ACCOMMODATION -->
+    <section id="section-accommodation" class="section">
+      <div class="section-header">
+        <h2>Accommodation</h2>
+        <button class="btn-primary btn-sm host-only hidden" onclick="editInfo('accommodation')">Edit</button>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <h4 style="margin-bottom:0.5rem">Details</h4>
+          <div id="acc-details" class="info-display"></div>
+          <h4 style="margin-top:1rem;margin-bottom:0.5rem">Links</h4>
+          <div id="acc-links" class="info-display"></div>
+          <h4 style="margin-top:1rem;margin-bottom:0.5rem">Notes</h4>
+          <div id="acc-notes" class="info-display"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FLIGHTS -->
+    <section id="section-flights" class="section">
+      <div class="section-header">
+        <h2>Flight Information</h2>
+        <button class="btn-primary btn-sm host-only hidden" onclick="editInfo('flights')">Edit</button>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <h4 style="margin-bottom:0.5rem">Details</h4>
+          <div id="flight-details" class="info-display"></div>
+          <h4 style="margin-top:1rem;margin-bottom:0.5rem">Notes</h4>
+          <div id="flight-notes" class="info-display"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ITINERARY -->
+    <section id="section-itinerary" class="section">
+      <div class="section-header">
+        <h2>Activity Itinerary</h2>
+        <button class="btn-primary host-only hidden" onclick="showModal('day-modal')">+ Add Day</button>
+      </div>
+      <div id="itinerary-list"></div>
+    </section>
+
+    <!-- MEMBERS -->
+    <section id="section-members" class="section">
+      <div class="section-header">
+        <h2>Family Members</h2>
+      </div>
+      <div id="members-list" class="members-grid"></div>
+    </section>
+
+    <!-- POLLS -->
+    <section id="section-polls" class="section">
+      <div class="section-header">
+        <h2>Custom Polls</h2>
+        <button class="btn-primary host-only hidden" onclick="showModal('poll-create-modal')">+ Create Poll</button>
+      </div>
+      <div id="polls-list"></div>
+    </section>
+  </main>
+</div>
+
+<!-- MODALS -->
+<div id="modal-overlay" class="modal-overlay hidden" onclick="closeModals()">
+
+  <!-- Suggestion Modal -->
+  <div id="suggestion-modal" class="modal hidden" onclick="event.stopPropagation()">
+    <h3>Suggest a Destination</h3>
+    <form onsubmit="submitSuggestion(event)">
+      <input type="text" id="sug-destination" placeholder="Destination (e.g. Bali, Costa Rica)" required>
+      <input type="text" id="sug-time" placeholder="Best time to go (e.g. March 2028)" required>
+      <textarea id="sug-notes" placeholder="Why this place? (optional)" rows="3"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary">Suggest</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Announcement Modal -->
+  <div id="announcement-modal" class="modal hidden" onclick="event.stopPropagation()">
+    <h3>Post Announcement</h3>
+    <form onsubmit="submitAnnouncement(event)">
+      <textarea id="ann-body" placeholder="What do you want to announce?" rows="4" required></textarea>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary">Post</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Accommodation Edit Modal -->
+  <div id="accommodation-edit-modal" class="modal hidden" onclick="event.stopPropagation()">
+    <h3>Edit Accommodation</h3>
+    <form onsubmit="saveAccommodation(event)">
+      <label class="block-label">Details</label>
+      <textarea id="edit-acc-details" rows="4"></textarea>
+      <label class="block-label">Links</label>
+      <textarea id="edit-acc-links" rows="3"></textarea>
+      <label class="block-label">Notes</label>
+      <textarea id="edit-acc-notes" rows="3"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Flights Edit Modal -->
+  <div id="flights-edit-modal" class="modal hidden" onclick="event.stopPropagation()">
+    <h3>Edit Flight Info</h3>
+    <form onsubmit="saveFlights(event)">
+      <label class="block-label">Details</label>
+      <textarea id="edit-flight-details" rows="4"></textarea>
+      <label class="block-label">Notes</label>
+      <textarea id="edit-flight-notes" rows="3"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Day Modal -->
+  <div id="day-modal" class="modal hidden" onclick="event.stopPropagation()">
+    <h3>Add Itinerary Day</h3>
+    <form onsubmit="submitDay(event)">
+      <input type="number" id="day-number" placeholder="Day number (e.g. 1)" required min="1">
+      <input type="date" id="day-date">
+      <input type="text" id="day-title" placeholder="Day title (e.g. Beach Day)">
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary">Add Day</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Activity Modal -->
+  <div id="activity-modal" class="modal hidden" onclick="event.stopPropagation()">
+    <h3>Add Activity</h3>
+    <form onsubmit="submitActivity(event)">
+      <input type="hidden" id="activity-day-id">
+      <input type="time" id="activity-time">
+      <input type="text" id="activity-title" placeholder="Activity name" required>
+      <textarea id="activity-desc" placeholder="Description" rows="2"></textarea>
+      <input type="text" id="activity-location" placeholder="Location">
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary">Add Activity</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Profile Edit Modal -->
+  <div id="profile-modal" class="modal hidden" onclick="event.stopPropagation()">
+    <h3>Edit Profile</h3>
+    <form onsubmit="saveProfile(event)">
+      <input type="hidden" id="profile-member-id">
+      <input type="text" id="profile-fullname" placeholder="Full Name (as on passport)">
+      <input type="email" id="profile-email" placeholder="Email">
+      <input type="tel" id="profile-phone" placeholder="Phone">
+      <input type="date" id="profile-dob" placeholder="Date of Birth">
+      <hr style="margin:0.75rem 0">
+      <h4 style="margin-bottom:0.5rem;font-size:0.95rem">Travel Documents</h4>
+      <input type="text" id="profile-passport" placeholder="Passport number">
+      <input type="date" id="profile-passport-exp" placeholder="Passport expiry">
+      <input type="text" id="profile-nationality" placeholder="Nationality">
+      <hr style="margin:0.75rem 0">
+      <h4 style="margin-bottom:0.5rem;font-size:0.95rem">Preferences &amp; Needs</h4>
+      <input type="text" id="profile-dietary" placeholder="Dietary needs">
+      <input type="text" id="profile-allergies" placeholder="Allergies">
+      <input type="text" id="profile-medical" placeholder="Medical notes">
+      <input type="text" id="profile-emergency" placeholder="Emergency contact name">
+      <input type="text" id="profile-emergency-phone" placeholder="Emergency contact phone">
+      <input type="text" id="profile-flight-prefs" placeholder="Flight preferences">
+      <input type="text" id="profile-room-prefs" placeholder="Room preferences">
+      <textarea id="profile-notes" placeholder="Other notes" rows="2"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Poll Create Modal -->
+  <div id="poll-create-modal" class="modal hidden" onclick="event.stopPropagation()">
+    <h3>Create a Poll</h3>
+    <form onsubmit="submitPoll(event)">
+      <input type="text" id="poll-question" placeholder="Question (e.g. What restaurant for dinner?)" required>
+      <textarea id="poll-desc" placeholder="Description (optional)" rows="2"></textarea>
+      <label class="block-label">Options</label>
+      <div id="poll-options-inputs">
+        <input type="text" class="poll-option-input" placeholder="Option 1" required>
+        <input type="text" class="poll-option-input" placeholder="Option 2" required>
+      </div>
+      <button type="button" class="btn-secondary btn-sm" onclick="addPollOptionInput()" style="margin-bottom:0.75rem">+ Add Option</button>
+      <label class="checkbox-label"><input type="checkbox" id="poll-allow-multiple"> Allow selecting multiple</label>
+      <label class="checkbox-label"><input type="checkbox" id="poll-allow-custom"> Allow voters to add their own</label>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModals()">Cancel</button>
+        <button type="submit" class="btn-primary">Create Poll</button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

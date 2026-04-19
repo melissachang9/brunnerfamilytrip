@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brunner Family Trip — Vote</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --primary: #2563eb; --primary-hover: #1d4ed8; --primary-light: #dbeafe; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --success: #10b981; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #2563eb 100%); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .container { background: var(--card); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 540px; overflow: hidden; }
+    .header { background: var(--primary); color: #fff; padding: 2rem; text-align: center; }
+    .header h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .header p { opacity: 0.85; font-size: 0.95rem; }
+    .step { display: none; padding: 2rem; }
+    .step.active { display: block; }
+    .step-indicator { display: flex; justify-content: center; gap: 0.5rem; padding: 1.25rem 2rem 0; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
+    .dot.active { background: var(--primary); }
+    .dot.done { background: var(--success); }
+    h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--text-light); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    input[type="text"], input[type="email"] { width: 100%; padding: 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 1rem; font-family: inherit; outline: none; margin-bottom: 0.75rem; }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    textarea { width: 100%; padding: 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.95rem; font-family: inherit; outline: none; margin-bottom: 0.75rem; resize: vertical; }
+    .btn { display: inline-block; padding: 0.75rem 2rem; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; width: auto; }
+    .option-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-bottom: 0.5rem; }
+    .option-item:hover { border-color: #cbd5e1; background: #f8fafc; }
+    .option-item.selected { border-color: var(--primary); background: var(--primary-light); }
+    .option-item input[type="checkbox"] { width: auto; margin: 0; accent-color: var(--primary); }
+    .option-label { flex: 1; }
+    .option-label strong { display: block; font-size: 0.95rem; }
+    .option-label small { color: var(--text-light); font-size: 0.8rem; }
+    .success-screen { text-align: center; padding: 3rem 2rem; }
+    .success-icon { font-size: 4rem; margin-bottom: 1rem; }
+    .error { color: #ef4444; font-size: 0.85rem; margin-bottom: 0.75rem; display: none; }
+    .or-divider { text-align: center; color: var(--text-light); font-size: 0.85rem; margin: 1.25rem 0; position: relative; }
+    .or-divider::before, .or-divider::after { content: ''; position: absolute; top: 50%; width: 38%; height: 1px; background: var(--border); }
+    .or-divider::before { left: 0; } .or-divider::after { right: 0; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>&#9992; Brunner Family Trip</h1>
+    <p>Where should we go? Vote now!</p>
+  </div>
+  <div class="step-indicator">
+    <div class="dot active" id="dot-0"></div>
+    <div class="dot" id="dot-1"></div>
+  </div>
+
+  <!-- STEP 1: Name -->
+  <div class="step active" id="step-0">
+    <h2>First, who are you?</h2>
+    <p class="subtitle">Enter your name so we know who voted.</p>
+    <input type="text" id="voter-name" placeholder="e.g. Melissa" autocomplete="off">
+    <p class="error" id="name-error">Please enter your name</p>
+    <button class="btn" onclick="goToVote()">Next &rarr;</button>
+  </div>
+
+  <!-- STEP 2: Vote -->
+  <div class="step" id="step-1">
+    <h2>Vote for your favorites!</h2>
+    <p class="subtitle">Check all the destinations you'd love. You can pick multiple!</p>
+    <div id="vote-options"></div>
+    <div class="or-divider">or suggest a new one</div>
+    <input type="text" id="new-destination" placeholder="Destination (e.g. Bali)">
+    <input type="text" id="new-time" placeholder="Best time (e.g. March 2028)">
+    <textarea id="new-notes" placeholder="Why? (optional)" rows="2"></textarea>
+    <button class="btn" onclick="submitVotes()">Submit My Votes!</button>
+  </div>
+
+  <!-- DONE -->
+  <div class="step" id="step-2">
+    <div class="success-screen">
+      <div class="success-icon">&#127881;</div>
+      <h2>Thanks for voting!</h2>
+      <p style="color:var(--text-light)">Your picks have been recorded.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let memberId = null;
+let suggestions = [];
+
+async function loadSuggestions() {
+  const { data } = await sb.from('suggestions').select('*, votes(id, member_id)').order('created_at');
+  suggestions = data || [];
+  const el = document.getElementById('vote-options');
+  if (suggestions.length === 0) {
+    el.innerHTML = '<p style="color:var(--text-light);text-align:center;margin-bottom:1rem">No suggestions yet — be the first to suggest one below!</p>';
+    return;
+  }
+  el.innerHTML = suggestions.map(s => `
+    <label class="option-item" onclick="this.classList.toggle('selected')">
+      <input type="checkbox" value="${s.id}">
+      <div class="option-label">
+        <strong>${esc(s.destination)}</strong>
+        <small>${esc(s.time_of_year)}${s.notes ? ' · ' + esc(s.notes) : ''}</small>
+      </div>
+    </label>
+  `).join('');
+}
+
+async function goToVote() {
+  const name = document.getElementById('voter-name').value.trim();
+  if (!name) { document.getElementById('name-error').style.display = 'block'; return; }
+  document.getElementById('name-error').style.display = 'none';
+
+  // Create or find member
+  let { data: existing } = await sb.from('members').select('id').eq('name', name).limit(1).single();
+  if (existing) {
+    memberId = existing.id;
+  } else {
+    const { data: newM } = await sb.from('members').insert({ name }).select().single();
+    memberId = newM.id;
+  }
+
+  await loadSuggestions();
+  showStep(1);
+}
+
+async function submitVotes() {
+  const name = document.getElementById('voter-name').value.trim();
+  const checked = [...document.querySelectorAll('#vote-options input:checked')].map(c => c.value);
+
+  // Submit new suggestion if provided
+  const newDest = document.getElementById('new-destination').value.trim();
+  const newTime = document.getElementById('new-time').value.trim();
+  if (newDest && newTime) {
+    const { data: newSug } = await sb.from('suggestions').insert({
+      destination: newDest,
+      time_of_year: newTime,
+      notes: document.getElementById('new-notes').value.trim(),
+      suggested_by: memberId,
+      suggested_by_name: name,
+    }).select().single();
+    if (newSug) checked.push(newSug.id);
+  }
+
+  // Submit votes
+  for (const sugId of checked) {
+    await sb.from('votes').upsert({ suggestion_id: sugId, member_id: memberId }, { onConflict: 'suggestion_id,member_id' });
+  }
+
+  showStep(2);
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  for (let i = 0; i <= 2; i++) {
+    const dot = document.getElementById('dot-' + i);
+    if (dot) dot.className = i < n ? 'dot done' : i === n ? 'dot active' : 'dot';
+  }
+}
+
+function esc(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(str));
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>

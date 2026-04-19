@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brunner Family Trip — Poll</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --primary: #2563eb; --primary-hover: #1d4ed8; --primary-light: #dbeafe; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --success: #10b981; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #2563eb 100%); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .container { background: var(--card); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 520px; overflow: hidden; }
+    .header { background: var(--primary); color: #fff; padding: 2rem; text-align: center; }
+    .header h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .header p { opacity: 0.85; font-size: 0.95rem; }
+    .step { display: none; padding: 2rem; }
+    .step.active { display: block; }
+    .step-indicator { display: flex; justify-content: center; gap: 0.5rem; padding: 1.25rem 2rem 0; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
+    .dot.active { background: var(--primary); }
+    .dot.done { background: var(--success); }
+    h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--text-light); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    input[type="text"] { width: 100%; padding: 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 1rem; font-family: inherit; outline: none; margin-bottom: 0.75rem; }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .btn { display: inline-block; padding: 0.75rem 2rem; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .option-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-bottom: 0.5rem; }
+    .option-item:hover { border-color: #cbd5e1; background: #f8fafc; }
+    .option-item.selected { border-color: var(--primary); background: var(--primary-light); }
+    .option-item input[type="checkbox"], .option-item input[type="radio"] { width: auto; margin: 0; accent-color: var(--primary); }
+    .option-label { flex: 1; font-size: 0.95rem; font-weight: 500; }
+    .or-divider { text-align: center; color: var(--text-light); font-size: 0.85rem; margin: 1rem 0; position: relative; }
+    .or-divider::before, .or-divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--border); }
+    .or-divider::before { left: 0; } .or-divider::after { right: 0; }
+    .success-screen { text-align: center; padding: 3rem 2rem; }
+    .success-icon { font-size: 4rem; margin-bottom: 1rem; }
+    .error-screen { text-align: center; padding: 3rem 2rem; }
+    .error-screen h2 { color: #ef4444; }
+    .error { color: #ef4444; font-size: 0.85rem; margin-bottom: 0.75rem; display: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>&#9992; Brunner Family Trip</h1>
+    <p id="poll-subtitle">Loading poll...</p>
+  </div>
+  <div class="step-indicator">
+    <div class="dot active" id="dot-0"></div>
+    <div class="dot" id="dot-1"></div>
+  </div>
+
+  <div class="step" id="step-error">
+    <div class="error-screen">
+      <h2 id="error-title">Poll not found</h2>
+      <p id="error-msg" style="color:var(--text-light)">This poll may have been closed or the link is incorrect.</p>
+    </div>
+  </div>
+
+  <!-- STEP 1: Name -->
+  <div class="step active" id="step-0">
+    <h2>First, who are you?</h2>
+    <p class="subtitle">Enter your name so we know who voted.</p>
+    <input type="text" id="voter-name" placeholder="e.g. Melissa" autocomplete="off">
+    <p class="error" id="name-error">Please enter your name</p>
+    <button class="btn" onclick="goToStep(1)">Next &rarr;</button>
+  </div>
+
+  <!-- STEP 2: Vote -->
+  <div class="step" id="step-1">
+    <h2 id="poll-question"></h2>
+    <p class="subtitle" id="poll-description"></p>
+    <div id="poll-options"></div>
+    <div id="custom-area" style="display:none">
+      <div class="or-divider">or add your own</div>
+      <input type="text" id="custom-option" placeholder="Your suggestion...">
+    </div>
+    <button class="btn" id="submit-btn" onclick="submitVote()">Submit My Vote!</button>
+  </div>
+
+  <!-- DONE -->
+  <div class="step" id="step-2">
+    <div class="success-screen">
+      <div class="success-icon">&#127881;</div>
+      <h2>Thanks for voting!</h2>
+      <p style="color:var(--text-light)">Your pick has been recorded.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let poll = null;
+let voterName = '';
+
+async function loadPoll() {
+  const params = new URLSearchParams(location.search);
+  const slug = params.get('s');
+  if (!slug) { showError('No Poll', 'No poll ID was provided in the URL.'); return; }
+
+  const { data, error } = await sb.from('polls').select('*, poll_options(*)').eq('slug', slug).limit(1).single();
+  if (error || !data) { showError('Poll Not Found', 'This poll may have been removed or the link is incorrect.'); return; }
+  if (!data.active) { showError('Poll Closed', 'This poll is no longer accepting votes.'); return; }
+
+  poll = data;
+  poll.poll_options.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  document.getElementById('poll-subtitle').textContent = poll.question;
+  document.getElementById('poll-question').textContent = poll.question;
+  document.getElementById('poll-description').textContent = poll.description || (poll.allow_multiple ? 'You can select multiple options.' : 'Pick one.');
+  if (poll.allow_custom) document.getElementById('custom-area').style.display = 'block';
+  renderOptions();
+}
+
+function showError(title, msg) {
+  document.getElementById('step-0').classList.remove('active');
+  document.getElementById('step-error').classList.add('active');
+  document.getElementById('error-title').textContent = title;
+  document.getElementById('error-msg').textContent = msg;
+  document.querySelector('.step-indicator').style.display = 'none';
+}
+
+function renderOptions() {
+  const type = poll.allow_multiple ? 'checkbox' : 'radio';
+  document.getElementById('poll-options').innerHTML = poll.poll_options.map(o => `
+    <label class="option-item" onclick="this.classList.toggle('selected')">
+      <input type="${type}" name="poll-opt" value="${o.id}">
+      <div class="option-label">${esc(o.label)}</div>
+    </label>
+  `).join('');
+}
+
+function goToStep(step) {
+  if (step === 1) {
+    const name = document.getElementById('voter-name').value.trim();
+    if (!name) { document.getElementById('name-error').style.display = 'block'; return; }
+    document.getElementById('name-error').style.display = 'none';
+    voterName = name;
+  }
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + step).classList.add('active');
+  document.getElementById('dot-0').className = step > 0 ? 'dot done' : 'dot active';
+  document.getElementById('dot-1').className = step === 1 ? 'dot active' : step > 1 ? 'dot done' : 'dot';
+}
+
+async function submitVote() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  const selected = [...document.querySelectorAll('input[name="poll-opt"]:checked')].map(c => c.value);
+  const custom = document.getElementById('custom-option')?.value.trim() || '';
+
+  // If custom option, create it first
+  if (custom && poll.allow_custom) {
+    const { data: newOpt } = await sb.from('poll_options').insert({
+      poll_id: poll.id,
+      label: custom,
+      sort_order: poll.poll_options.length,
+    }).select().single();
+    if (newOpt) selected.push(newOpt.id);
+  }
+
+  // Submit votes
+  for (const optionId of selected) {
+    await sb.from('poll_votes').upsert({
+      poll_id: poll.id,
+      option_id: optionId,
+      voter_name: voterName,
+    }, { onConflict: 'option_id,voter_name' });
+  }
+
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-2').classList.add('active');
+  document.getElementById('dot-1').className = 'dot done';
+}
+
+function esc(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(str));
+  return d.innerHTML;
+}
+
+loadPoll();
+</script>
+</body>
+</html>

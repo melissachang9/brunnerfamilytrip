@@ -55,12 +55,13 @@
     <div class="dot" id="dot-1"></div>
   </div>
 
-  <!-- STEP 1: Name -->
+  <!-- STEP 1: Name & Party Size -->
   <div class="step active" id="step-0">
     <h2>First, who are you?</h2>
-    <p class="subtitle">Enter your name so we know who voted.</p>
-    <input type="text" id="voter-name" placeholder="e.g. Melissa" autocomplete="off">
-    <p class="error" id="name-error">Please enter your name</p>
+    <p class="subtitle">Enter your name and how many people are in your travel group.</p>
+    <input type="text" id="voter-name" placeholder="Your name (e.g. Melissa)" autocomplete="off">
+    <input type="number" id="voter-party-size" placeholder="Number of people traveling (e.g. 4)" min="1" max="50" autocomplete="off">
+    <p class="error" id="name-error">Please enter your name and number of travelers</p>
     <button class="btn" onclick="goToVote()">Next &rarr;</button>
   </div>
 
@@ -115,15 +116,17 @@ async function loadSuggestions() {
 
 async function goToVote() {
   const name = document.getElementById('voter-name').value.trim();
-  if (!name) { document.getElementById('name-error').style.display = 'block'; return; }
+  const partySize = parseInt(document.getElementById('voter-party-size').value) || 0;
+  if (!name || partySize < 1) { document.getElementById('name-error').style.display = 'block'; return; }
   document.getElementById('name-error').style.display = 'none';
 
   // Create or find member
   let { data: existing } = await sb.from('members').select('id').eq('name', name).limit(1).single();
   if (existing) {
     memberId = existing.id;
+    await sb.from('members').update({ party_size: partySize }).eq('id', memberId);
   } else {
-    const { data: newM } = await sb.from('members').insert({ name }).select().single();
+    const { data: newM } = await sb.from('members').insert({ name, party_size: partySize }).select().single();
     memberId = newM.id;
   }
 

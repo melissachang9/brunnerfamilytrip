@@ -59,8 +59,10 @@
   <div class="step active" id="step-0">
     <h2>First, who are you?</h2>
     <p class="subtitle">Enter your name and how many family members (including yourself) you're voting on behalf of.</p>
-    <input type="text" id="voter-name" placeholder="Your name (e.g. Melissa)" autocomplete="off">
-    <input type="text" id="voter-party-size" inputmode="numeric" pattern="[0-9]*" placeholder="Number of people traveling (e.g. 4)" autocomplete="off">
+    <label for="voter-name">Your name</label>
+    <input type="text" id="voter-name" name="voter-name" placeholder="Your name (e.g. Melissa)" autocomplete="name">
+    <label for="voter-party-size">Number of travelers</label>
+    <input type="text" id="voter-party-size" name="voter-party-size" inputmode="numeric" pattern="[0-9]*" placeholder="Number of people traveling (e.g. 4)" autocomplete="off">
     <p class="error" id="name-error">Please enter your name and number of travelers</p>
     <button class="btn" onclick="goToVote()">Next &rarr;</button>
   </div>
@@ -71,9 +73,12 @@
     <p class="subtitle">Check all the destinations you'd love. You can pick multiple!</p>
     <div id="vote-options"></div>
     <div class="or-divider">or suggest a new one</div>
-    <input type="text" id="new-destination" placeholder="Destination (e.g. Bali)">
-    <input type="text" id="new-time" placeholder="Best time (e.g. March 2028)">
-    <textarea id="new-notes" placeholder="Why? (optional)" rows="2"></textarea>
+    <label for="new-destination">Suggest a new destination</label>
+    <input type="text" id="new-destination" name="new-destination" placeholder="Destination (e.g. Bali)">
+    <label for="new-time">Best time to go</label>
+    <input type="text" id="new-time" name="new-time" placeholder="Best time (e.g. March 2028)">
+    <label for="new-notes">Why? (optional)</label>
+    <textarea id="new-notes" name="new-notes" placeholder="Why? (optional)" rows="2"></textarea>
     <p class="error" id="vote-error"></p>
     <button class="btn" onclick="submitVotes()">Submit My Votes!</button>
   </div>
@@ -96,23 +101,31 @@ let memberId = null;
 let suggestions = [];
 
 async function loadSuggestions() {
-  const { data } = await sb.from('suggestions').select('*, votes(id, member_id)').order('created_at');
+  const { data } = await sb.from('suggestions').select('*, votes(id, member_id, count)').order('created_at');
   suggestions = data || [];
   const el = document.getElementById('vote-options');
   if (suggestions.length === 0) {
     el.innerHTML = '<p style="color:var(--text-light);text-align:center;margin-bottom:1rem">No suggestions yet — be the first to suggest one below!</p>';
     return;
   }
-  el.innerHTML = suggestions.map(s => `
-    <label class="option-item" onclick="this.classList.toggle('selected')">
-      <input type="checkbox" value="${s.id}">
-      <div class="option-label">
-        <strong>${esc(s.destination)}</strong>
-        <small>${esc(s.time_of_year)}${s.notes ? ' · ' + esc(s.notes) : ''}</small>
+  el.innerHTML = suggestions.map((s, idx) => {
+    // Sum the count for this suggestion
+    const totalVotes = (s.votes || []).reduce((sum, v) => sum + (v.count || 1), 0);
+    const inputId = `vote-option-${idx}`;
+    return `
+      <div class="option-item">
+        <input type="checkbox" id="${inputId}" name="vote-option" value="${s.id}">
+        <label for="${inputId}" class="option-label">
+          <strong>${esc(s.destination)}</strong>
+          <small>${esc(s.time_of_year)}${s.notes ? ' · ' + esc(s.notes) : ''}</small><br>
+          <span style="color:var(--text-light);font-size:0.9em">${totalVotes} vote${totalVotes !== 1 ? 's' : ''}</span>
+        </label>
       </div>
-    </label>
-  `).join('');
+    `;
+  }).join('');
 }
+
+// Optionally, if you display vote tallies on this page, update that logic to sum v.count, not just count rows.
 
 async function goToVote() {
   const name = document.getElementById('voter-name').value.trim();
@@ -176,8 +189,11 @@ async function submitVotes() {
   const partySize = parseInt(document.getElementById('voter-party-size').value) || 1;
   // Submit votes (delete old, insert new to ensure count is updated)
   for (const sugId of checked) {
+    console.log('[VOTE DEBUG] Deleting old vote for suggestion', sugId, 'member', memberId);
     await sb.from('votes').delete().eq('suggestion_id', sugId).eq('member_id', memberId);
-    await sb.from('votes').insert({ suggestion_id: sugId, member_id: memberId, count: partySize });
+    console.log('[VOTE DEBUG] Inserting vote:', { suggestion_id: sugId, member_id: memberId, count: partySize });
+    const { data, error } = await sb.from('votes').insert({ suggestion_id: sugId, member_id: memberId, count: partySize }).select().single();
+    console.log('[VOTE DEBUG] Insert result:', data, error);
   }
 
   showStep(2);

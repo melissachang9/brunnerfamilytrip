@@ -158,11 +158,14 @@ async function loadDashboardStats() {
 
   const statsEl = document.getElementById('quick-stats');
   const { data: allMembers } = await sb.from('members').select('party_size');
-  const memberCount = allMembers?.length || 0;
+  const { data: allVotes } = await sb.from('votes').select('count');
+  const householdCount = allMembers?.length || 0;
   const totalTravelers = (allMembers || []).reduce((sum, m) => sum + (m.party_size || 1), 0);
+  const totalVotes = (allVotes || []).reduce((sum, v) => sum + (v.count || 1), 0);
   statsEl.innerHTML = `
-    <div class="stat-item"><span>Family Members</span><span class="stat-value">${memberCount}</span></div>
+    <div class="stat-item"><span>Households</span><span class="stat-value">${householdCount}</span></div>
     <div class="stat-item"><span>Total Travelers</span><span class="stat-value">${totalTravelers}</span></div>
+    <div class="stat-item"><span>Total Votes</span><span class="stat-value">${totalVotes}</span></div>
   `;
 }
 
@@ -205,46 +208,55 @@ async function deleteAnnouncement(id) {
 
 // ========== VOTING RESULTS ==========
 async function loadSuggestions() {
-  const { data: suggestions } = await sb
-    .from('suggestions')
-    .select('*, votes(id, member_id, members(name))')
-    .order('created_at', { ascending: false });
+    // Show debug info in the UI for troubleshooting
+    const debugDiv = document.createElement('pre');
+    debugDiv.style.background = '#f8fafc';
+    debugDiv.style.color = '#64748b';
+    debugDiv.style.fontSize = '0.8em';
+    debugDiv.style.padding = '0.5em';
+    debugDiv.textContent = '[DEBUG] voteTotals: ' + JSON.stringify(voteTotals, null, 2);
+    el.parentNode.insertBefore(debugDiv, el);
+
+    // Show raw votes table for troubleshooting
+    const rawVotesDiv = document.createElement('div');
+    rawVotesDiv.innerHTML = `<h4 style="margin:1em 0 0.5em 0;color:#64748b;font-size:1em">Raw Votes Table (for troubleshooting)</h4>` +
+      `<table style="width:100%;font-size:0.9em;background:#f8fafc;margin-bottom:1em"><thead><tr><th>suggestion_id</th><th>count</th></tr></thead><tbody>` +
+      (votes || []).map(v => `<tr><td>${v.suggestion_id}</td><td>${v.count}</td></tr>`).join('') +
+      `</tbody></table>`;
+    el.parentNode.insertBefore(rawVotesDiv, el.nextSibling);
+  // NEW: Fetch all votes directly and sum count per suggestion
+  const [{ data: suggestions }, { data: votes }] = await Promise.all([
+    sb.from('suggestions').select('*').order('created_at', { ascending: false }),
+    sb.from('votes').select('suggestion_id, count'),
+  ]);
 
   const el = document.getElementById('vote-summary');
-
   if (!suggestions || suggestions.length === 0) {
     el.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
     return;
   }
 
-  // Aggregate votes by destination + time combo
-  const comboMap = {};
-  suggestions.forEach(s => {
-    const key = s.destination + ' — ' + s.time_of_year;
-    if (!comboMap[key]) comboMap[key] = { destination: s.destination, time: s.time_of_year, votes: 0, voters: [] };
-    // Sum count for each vote (default 1)
-    const count = (s.votes || []).reduce((sum, v) => sum + (v.count || 1), 0);
-    comboMap[key].votes += count;
-    (s.votes || []).forEach(v => {
-      const vn = v.members?.name || 'Unknown';
-      if (!comboMap[key].voters.includes(vn)) comboMap[key].voters.push(vn);
-    });
+  // Build a map of suggestion_id to total count
+  const voteTotals = {};
+  (votes || []).forEach(v => {
+    voteTotals[v.suggestion_id] = (voteTotals[v.suggestion_id] || 0) + (v.count || 1);
   });
 
-  const sorted = Object.values(comboMap).sort((a, b) => b.votes - a.votes);
-  const maxVotes = Math.max(...sorted.map(s => s.votes), 1);
+  // Sort suggestions by total votes
+  const sorted = [...suggestions].sort((a, b) => (voteTotals[b.id] || 0) - (voteTotals[a.id] || 0));
+  const maxVotes = Math.max(...sorted.map(s => voteTotals[s.id] || 0), 1);
 
   el.innerHTML = sorted.map((s, idx) => {
-    const pct = Math.round((s.votes / maxVotes) * 100);
-    const medal = idx === 0 && s.votes > 0 ? '🥇 ' : idx === 1 && s.votes > 0 ? '🥈 ' : idx === 2 && s.votes > 0 ? '🥉 ' : '';
+    const votesForThis = voteTotals[s.id] || 0;
+    const pct = Math.round((votesForThis / maxVotes) * 100);
+    const medal = idx === 0 && votesForThis > 0 ? '🥇 ' : idx === 1 && votesForThis > 0 ? '🥈 ' : idx === 2 && votesForThis > 0 ? '🥉 ' : '';
     return `
       <div class="poll-result-item">
         <div class="poll-result-header">
-          <span class="poll-result-name">${medal}${esc(s.destination)} — ${esc(s.time)}</span>
-          <span class="poll-result-count">${s.votes} vote${s.votes !== 1 ? 's' : ''}</span>
+          <span class="poll-result-name">${medal}${esc(s.destination)} — ${esc(s.time_of_year)}</span>
+          <span class="poll-result-count">${votesForThis} traveler${votesForThis !== 1 ? 's' : ''}</span>
         </div>
         <div class="poll-bar-bg"><div class="poll-bar" style="width:${pct}%"></div></div>
-        ${s.voters.length ? `<div class="poll-voters">${s.voters.map(v => esc(v)).join(', ')}</div>` : ''}
       </div>`;
   }).join('');
 }

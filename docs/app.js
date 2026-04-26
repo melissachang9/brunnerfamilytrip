@@ -208,28 +208,12 @@ async function deleteAnnouncement(id) {
 
 // ========== VOTING RESULTS ==========
 async function loadSuggestions() {
-    // Show debug info and raw votes table in the UI for troubleshooting (after voteTotals is defined and results are rendered)
-    if (el && typeof voteTotals === 'object') {
-      const debugDiv = document.createElement('pre');
-      debugDiv.style.background = '#f8fafc';
-      debugDiv.style.color = '#64748b';
-      debugDiv.style.fontSize = '0.8em';
-      debugDiv.style.padding = '0.5em';
-      debugDiv.textContent = '[DEBUG] voteTotals: ' + JSON.stringify(voteTotals, null, 2);
-      el.parentNode.insertBefore(debugDiv, el.nextSibling);
-
-      const rawVotesDiv = document.createElement('div');
-      rawVotesDiv.innerHTML = `<h4 style=\"margin:1em 0 0.5em 0;color:#64748b;font-size:1em\">Raw Votes Table (for troubleshooting)</h4>` +
-        `<table style=\"width:100%;font-size:0.9em;background:#f8fafc;margin-bottom:1em\"><thead><tr><th>suggestion_id</th><th>count</th></tr></thead><tbody>` +
-        (votes || []).map(v => `<tr><td>${v.suggestion_id}</td><td>${v.count}</td></tr>`).join('') +
-        `</tbody></table>`;
-      el.parentNode.insertBefore(rawVotesDiv, el.nextSibling.nextSibling);
-    }
-  // NEW: Fetch all votes directly and sum count per suggestion
+  // Fetch all votes directly and sum count per suggestion
   const [{ data: suggestions }, { data: votes }] = await Promise.all([
     sb.from('suggestions').select('*').order('created_at', { ascending: false }),
     sb.from('votes').select('suggestion_id, count'),
   ]);
+  console.log('[RESULTS DEBUG] suggestions:', suggestions, 'votes:', votes);
 
   const el = document.getElementById('vote-summary');
   if (!suggestions || suggestions.length === 0) {

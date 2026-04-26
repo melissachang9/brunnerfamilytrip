@@ -208,42 +208,106 @@ async function deleteAnnouncement(id) {
 
 // ========== VOTING RESULTS ==========
 async function loadSuggestions() {
-  // Fetch all votes directly and sum count per suggestion
+  // Fetch suggestions and votes (with member name)
   const [{ data: suggestions }, { data: votes }] = await Promise.all([
     sb.from('suggestions').select('*').order('created_at', { ascending: false }),
-    sb.from('votes').select('suggestion_id, count'),
+    sb.from('votes').select('suggestion_id, count, member_id, members(name)'),
   ]);
-  console.log('[RESULTS DEBUG] suggestions:', suggestions, 'votes:', votes);
 
   const el = document.getElementById('vote-summary');
+  const byDestEl = document.getElementById('vote-by-destination');
+  const byMonthEl = document.getElementById('vote-by-month');
+  const byVoterEl = document.getElementById('vote-by-voter');
+
   if (!suggestions || suggestions.length === 0) {
-    el.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
+    if (el) el.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
+    if (byDestEl) byDestEl.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
+    if (byMonthEl) byMonthEl.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
+    if (byVoterEl) byVoterEl.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
     return;
   }
 
-  // Build a map of suggestion_id to total count
-  const voteTotals = {};
+  // Index suggestions by id
+  const sugById = {};
+  suggestions.forEach(s => { sugById[s.id] = s; });
+
+  // Build tallies
+  const comboTotals = {};   // suggestion_id -> count
+  const destTotals = {};    // destination -> count
+  const monthTotals = {};   // time_of_year -> count
+  const voterMap = {};      // voter name -> [{destination, time_of_year, count}]
+
   (votes || []).forEach(v => {
-    voteTotals[v.suggestion_id] = (voteTotals[v.suggestion_id] || 0) + (v.count || 1);
+    const s = sugById[v.suggestion_id];
+    if (!s) return;
+    const c = v.count || 1;
+    comboTotals[v.suggestion_id] = (comboTotals[v.suggestion_id] || 0) + c;
+    destTotals[s.destination] = (destTotals[s.destination] || 0) + c;
+    monthTotals[s.time_of_year] = (monthTotals[s.time_of_year] || 0) + c;
+    const voterName = v.members?.name || 'Unknown';
+    if (!voterMap[voterName]) voterMap[voterName] = [];
+    voterMap[voterName].push({ destination: s.destination, time: s.time_of_year, count: c });
   });
 
-  // Sort suggestions by total votes
-  const sorted = [...suggestions].sort((a, b) => (voteTotals[b.id] || 0) - (voteTotals[a.id] || 0));
-  const maxVotes = Math.max(...sorted.map(s => voteTotals[s.id] || 0), 1);
+  // Helper: render a sorted bar list
+  function renderBars(map, labelFn) {
+    const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) return '<div class="empty-state"><p>No votes yet</p></div>';
+    const max = Math.max(...entries.map(e => e[1]), 1);
+    return entries.map(([key, val], idx) => {
+      const pct = Math.round((val / max) * 100);
+      const medal = idx === 0 && val > 0 ? '🥇 ' : idx === 1 && val > 0 ? '🥈 ' : idx === 2 && val > 0 ? '🥉 ' : '';
+      return `
+        <div class="poll-result-item">
+          <div class="poll-result-header">
+            <span class="poll-result-name">${medal}${esc(labelFn ? labelFn(key) : key)}</span>
+            <span class="poll-result-count">${val} traveler${val !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="poll-bar-bg"><div class="poll-bar" style="width:${pct}%"></div></div>
+        </div>`;
+    }).join('');
+  }
 
-  el.innerHTML = sorted.map((s, idx) => {
-    const votesForThis = voteTotals[s.id] || 0;
-    const pct = Math.round((votesForThis / maxVotes) * 100);
-    const medal = idx === 0 && votesForThis > 0 ? '🥇 ' : idx === 1 && votesForThis > 0 ? '🥈 ' : idx === 2 && votesForThis > 0 ? '🥉 ' : '';
-    return `
-      <div class="poll-result-item">
-        <div class="poll-result-header">
-          <span class="poll-result-name">${medal}${esc(s.destination)} — ${esc(s.time_of_year)}</span>
-          <span class="poll-result-count">${votesForThis} traveler${votesForThis !== 1 ? 's' : ''}</span>
-        </div>
-        <div class="poll-bar-bg"><div class="poll-bar" style="width:${pct}%"></div></div>
-      </div>`;
-  }).join('');
+  // Combo view (destination + month)
+  if (el) {
+    const comboMap = {};
+    Object.entries(comboTotals).forEach(([sid, val]) => {
+      const s = sugById[sid];
+      if (!s) return;
+      const key = s.destination + ' — ' + s.time_of_year;
+      comboMap[key] = (comboMap[key] || 0) + val;
+    });
+    el.innerHTML = renderBars(comboMap);
+  }
+
+  // Destination view
+  if (byDestEl) byDestEl.innerHTML = renderBars(destTotals);
+
+  // Month view
+  if (byMonthEl) byMonthEl.innerHTML = renderBars(monthTotals);
+
+  // Who voted for what
+  if (byVoterEl) {
+    const names = Object.keys(voterMap).sort();
+    if (names.length === 0) {
+      byVoterEl.innerHTML = '<div class="empty-state"><p>No votes yet</p></div>';
+    } else {
+      byVoterEl.innerHTML = names.map(name => {
+        const picks = voterMap[name];
+        const partySize = picks[0]?.count || 1;
+        return `
+          <div class="poll-result-item">
+            <div class="poll-result-header">
+              <span class="poll-result-name"><strong>${esc(name)}</strong> <span style="color:var(--text-light);font-weight:normal">(${partySize} traveler${partySize !== 1 ? 's' : ''})</span></span>
+              <span class="poll-result-count">${picks.length} pick${picks.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div style="padding:0.25rem 0 0.5rem;color:var(--text-light);font-size:0.9em">
+              ${picks.map(p => `${esc(p.destination)} — ${esc(p.time)}`).join('<br>')}
+            </div>
+          </div>`;
+      }).join('');
+    }
+  }
 }
 
 // ========== ACCOMMODATION ==========
